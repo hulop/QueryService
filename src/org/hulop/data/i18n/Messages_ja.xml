@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+<entry key="buildings">建物から検索</entry>
+<entry key="people">名前から検索</entry>
+<entry key="list_of_people">名前の一覧</entry>
+<entry key="male_restroom">男性用トイレ</entry>
+<entry key="female_restroom">女性用トイレ</entry>
+<entry key="restroom">トイレ</entry>
+<entry key="nearby_facility">近くの施設</entry>
+</properties>
