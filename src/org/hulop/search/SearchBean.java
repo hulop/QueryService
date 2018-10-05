@@ -9,8 +9,8 @@ import org.apache.wink.json4j.JSONException;
 import org.hulop.data.Directory;
 import org.hulop.data.Directory.Item;
 import org.hulop.data.MapGeojson.Facility;
+import org.hulop.data.MapGeojson.FacilityEntry;
 import org.hulop.data.Searchable;
-import org.hulop.data.cmu.PeopleDirectory.Entry;
 
 public class SearchBean {
 	
@@ -46,13 +46,13 @@ public class SearchBean {
 		}
 	}
 	
-	private HashMap<Entry, ArrayList<Facility>> index = new HashMap<Entry, ArrayList<Facility>>();
+	private HashMap<FacilityEntry, ArrayList<Facility>> index = new HashMap<FacilityEntry, ArrayList<Facility>>();
 	
 	public SearchBean() {	
 	}
 	
 	private void debugprint() {
-		for(Entry e:index.keySet()) {
+		for(FacilityEntry e:index.keySet()) {
 			ArrayList<Facility> fs = index.get(e);
 			
 			System.out.print(e+":");
