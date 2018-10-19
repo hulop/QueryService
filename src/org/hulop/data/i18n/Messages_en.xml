@@ -2,10 +2,11 @@
 <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
 <properties>
 <entry key="buildings">Search by Building</entry>
+<entry key="categories">Search by Category</entry>
 <entry key="people">Search by Name</entry>
 <entry key="list_of_people">List of Names</entry>
 <entry key="male_restroom">Male Restroom</entry>
 <entry key="female_restroom">Female Restroom</entry>
-<entry key="restroom">Restroom</entry>
+<entry key="restroom">Unisex Restroom</entry>
 <entry key="nearby_facility">Nearby Facility</entry>
 </properties>

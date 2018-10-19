@@ -24,7 +24,7 @@ public class SearchBean {
 	}
 	
 	
-	private HashMap<String, Searchable> cache = new HashMap<String, Searchable>();
+	private static HashMap<String, Searchable> cache = new HashMap<String, Searchable>();
 	
 	public void addSearchable(String id, Searchable searchable) {
 		cache.put(id, searchable);
@@ -68,7 +68,7 @@ public class SearchBean {
 		if (s == null) {
 			return null;
 		}
-		return s.seacrh(query);
+		return s.search(query);
 	}
 
 }

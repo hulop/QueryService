@@ -2,6 +2,7 @@
 <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
 <properties>
 <entry key="buildings">建物から検索</entry>
+<entry key="categories">カテゴリーから検索</entry>
 <entry key="people">名前から検索</entry>
 <entry key="list_of_people">名前の一覧</entry>
 <entry key="male_restroom">男性用トイレ</entry>

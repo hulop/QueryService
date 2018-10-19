@@ -1,13 +1,17 @@
 package org.hulop.data;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 
 import org.apache.wink.json4j.JSONArray;
 import org.apache.wink.json4j.JSONException;
 import org.apache.wink.json4j.JSONObject;
+import org.hulop.data.MapGeojson.Facility;
+import org.hulop.data.i18n.Messages;
 
 public class Directory implements Searchable, Cloneable {
 	
@@ -23,12 +27,102 @@ public class Directory implements Searchable, Cloneable {
 		MapGeojson map = null;
 		try {
 			map = MapGeojson.load(url, locale);
-			this.setLandmakrks(map.getLandmarks());
+			setLandmakrks(map.getLandmarks());
 		}catch(Exception e) {
 			e.printStackTrace();
 			return;
 		}
+
+		Comparator<Directory.Item> itemComparator = new Comparator<Directory.Item>() {
+			@Override
+			public int compare(Item o1, Item o2) {
+				return o1.compare(o2);
+			}
+		};
+		FirstLetterIndex firstLetterIndex = new FirstLetterIndex();
+		
+		if (map.getBuildings().length > 1) {
+			Section buildingsSection = this.add(new Section(Messages.get(locale, "buildings")));		
+			for(String building:map.getBuildings()) {
+				if (building == null) continue;
+				List<Facility> facilities = map.getFacilitiesByBuilding(building);
+				Item i = buildingsSection.add(new Item(building, null));
+				
+				Directory buildingDirectory = i.setContent(new Directory());
+				Section buildingSection = buildingDirectory.add(new Section(building));
+				for(Facility f:facilities) {
+					try {
+						buildingSection.add(new Item(f.getName(), f.getNamePron(), f.getNodeID(), buildingFloorString(f), buildingFloorPronString(f)));
+					} catch(Exception e) {
+						System.err.println(f);
+					}
+				}
+				buildingDirectory.sortAndDevide(itemComparator, firstLetterIndex);
+				buildingDirectory.showSectionIndex = true;
+			}
+			buildingsSection.sort(itemComparator);		
+		} 
+		if (map.getMajorCategories().length > 1) {
+			Section categoriesSection = this.add(new Section(Messages.get(locale, "categories")));		
+			for(String category:map.getMajorCategories()) {
+				if (category == null) continue;
+				List<Facility> facilities = map.getFacilitiesByMajorCategory(category);
+				Item i = categoriesSection.add(new Item(category, null));
+				
+				Directory categoryDirectory = i.setContent(new Directory());
+				Section categorySection = categoryDirectory.add(new Section(category));
+				for(Facility f:facilities) {
+					try {
+						categorySection.add(new Item(f.getName(), f.getNamePron(), f.getNodeID(), buildingFloorString(f), buildingFloorPronString(f)));
+					} catch(Exception e) {
+						System.err.println(f);
+					}
+				}
+				categoryDirectory.sortAndDevide(itemComparator, firstLetterIndex);
+				categoryDirectory.showSectionIndex = true;
+			}
+			categoriesSection.sort(itemComparator);		
+		}
+		
+		Section serviceSection = this.add(new Section(Messages.get(locale, "nearby_facility")));		
+		
+		for(Facility service:map.getServices()) {
+			serviceSection.add(new Item(service.getName(), service.getNamePron(), service.getNodeID()));
+		}
+		serviceSection.sort(itemComparator);
 	}
+	
+	protected String buildingFloorString(Facility facility) {
+		try {
+			Double f = Double.parseDouble(facility.getFloor());
+			if (f < 0) {
+				return facility.getBuilding()+" - B"+(-f.intValue())+"F";			
+			} else {
+				return facility.getBuilding()+" - "+f.intValue()+"F";			
+			}
+		} catch (Exception e) {
+			return facility.getBuilding();
+		}
+	}
+	protected String buildingFloorPronString(Facility facility) {
+		try {
+			Double f = Double.parseDouble(facility.getFloor());
+			if (f < 0) {
+				return facility.getBuilding()+" - B"+(-f.intValue())+"F";			
+			} else {
+				return facility.getBuilding()+" - "+f.intValue()+"F";			
+			}
+		} catch (Exception e) {
+			return facility.getBuilding();
+		}
+	}
+	protected String buildingRoomFloorString(Facility facility) {
+		return facility.getName()+" ("+buildingFloorString(facility)+")";
+	}
+	protected String buildingRoomFloorPronString(Facility facility) {
+		return facility.getName()+" ("+buildingFloorPronString(facility)+")";
+	}
+	
 
 	public void setLandmakrks(JSONArray landmarks) {
 		this.landmarks = landmarks;
@@ -229,11 +323,18 @@ public class Directory implements Searchable, Cloneable {
 	}
 
 	@Override
-	public Directory seacrh(String query) {
+	public Directory search(String query) {
 		Directory result = new Directory();
 		Section section = result.add(new Section());
 		walk(query, section.items);
 		return result;
 	}
 	
+
+	public static void main(String[] args) throws MalformedURLException, JSONException {
+		URL url = new URL("http://cmu-demo-hotel.mybluemix.net/query/directory?lng=-80.05914149539372&lat=40.41837024971599&user=test");			
+		Directory d = new Directory(url, new Locale("en"));
+		Directory d2 = d.search("room");
+		System.out.println(d2.toJSON().toString());
+	}
 }

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +31,9 @@ public class MapGeojson {
 	private static String KEY_SEX = "男女別";
 	private static String SEX_MALE = "1";
 	private static String SEX_FEMALE = "2";
+	private static String KEY_MAJOR_CATEGORY = "major_category";
+	private static String KEY_SUB_CATEGORY = "sub_category";
+	private static String KEY_PROP_FACILITY_ID = "施設ID";
 	
 	public class Facility {
 		private JSONObject feature;
@@ -38,6 +42,7 @@ public class MapGeojson {
 		private String building;
 		private String floor;
 		private String nodeID;
+		private String majorCategory;
 
 		public String toString() {
 			try {
@@ -47,7 +52,7 @@ public class MapGeojson {
 			}
 			return "";
 		}
-		public Facility(JSONObject feature, String name, String pron, String building, String floor, String nodeID) {
+		public Facility(JSONObject feature, String name, String pron, String building, String floor, String nodeID, String majorCategory) {
 			this.feature = feature;
 			assert(name == null);
 			this.name = name;
@@ -55,6 +60,17 @@ public class MapGeojson {
 			this.building = building;
 			this.floor = floor;
 			this.nodeID = nodeID;
+			this.majorCategory = majorCategory;
+		}
+		public boolean combine(JSONObject feature,  String name, String pron, String building, String floor, String nodeID, String majorCategory) {
+			if (!this.building.equals(building)) {
+				return false;
+			}
+			this.nodeID = this.nodeID+"|"+nodeID;
+			if (!this.floor.equals(floor)) {
+				this.floor = "";
+			}
+			return true;
 		}
 		public String getName() {
 			return name;
@@ -74,10 +90,13 @@ public class MapGeojson {
 		public boolean isService() {
 			return false;
 		}
+		public String getMajorCategory() {
+			return building;
+		}
 	}
 	public class ServiceFacility extends Facility {		
-		public ServiceFacility(JSONObject feature, String name, String pron, String building, String floor, String nodeID) {
-			super(feature, name, pron, building, floor, nodeID);
+		public ServiceFacility(JSONObject feature, String name, String pron, String building, String floor, String nodeID, String majorCategory) {
+			super(feature, name, pron, building, floor, nodeID, majorCategory);
 		}
 		public boolean isService() {
 			return true;
@@ -86,7 +105,7 @@ public class MapGeojson {
 	public class GroupFacility extends Facility {
 		List<Facility> facilities;
 		public GroupFacility(List<Facility> facilities) {
-			super(null, facilities.get(0).getName(), facilities.get(0).getNamePron(), facilities.get(0).getBuilding(), facilities.get(0).getFloor(), null);
+			super(null, facilities.get(0).getName(), facilities.get(0).getNamePron(), facilities.get(0).getBuilding(), facilities.get(0).getFloor(), null, null);
 			this.facilities = facilities;
 		}
 		public String getNodeID() {
@@ -101,8 +120,8 @@ public class MapGeojson {
 	}
 	public class Toilet extends ServiceFacility {
 		String sex;
-		public Toilet(JSONObject feature, String building, String nodeID, String floor, String sex) {
-			super(feature, null, null, building, nodeID, floor);
+		public Toilet(JSONObject feature, String building, String nodeID, String floor, String sex, String majorCategory) {
+			super(feature, null, null, building, nodeID, floor, majorCategory);
 			this.sex = sex;
 		}
 		public String getName() {
@@ -147,6 +166,7 @@ public class MapGeojson {
 			return;
 		}
 		JSONArray features = data.getJSONArray("landmarks");
+		
 		for(int i = 0; i < features.length(); i++) {
 			Facility facility = createFacility(features.getJSONObject(i));
 			if (facility != null) {
@@ -161,12 +181,15 @@ public class MapGeojson {
 		}
 		return value;
 	}
-	
+
+	HashMap<String, Facility> map = new HashMap<String, Facility>();
+	String[] services = {"NURS", "SMOK", "ATM", "RE_L", "_facility_"};
 	public Facility createFacility(JSONObject feature) throws JSONException {
 		JSONObject properties = feature.getJSONObject("properties");
 		
 		String nodeID = get(feature, KEY_NODE);
 		String category = get(properties, KEY_PROP_CATEGORY);
+		String facilityID = get(properties, KEY_PROP_FACILITY_ID);		
 		
 		if (nodeID == null) {
 			return null;
@@ -179,39 +202,73 @@ public class MapGeojson {
 		
 		String building = get(properties, KEY_PROP_BUILDING);
 		String floor = get(feature, KEY_NODE_HEIGHT);
+		String majorCategory = get(properties, KEY_MAJOR_CATEGORY);
+		String subCategory = get(properties, KEY_SUB_CATEGORY);
 		
-		Facility facility = null;
-		if (nodeID != null) {
-			if (building == null) {
-				building = "Others";
+
+		Facility facility = map.get(facilityID);
+		if (facility != null) {
+			if (facility.combine(feature, name, namePron, building, floor, nodeID, majorCategory)) {
+				return null;
 			}
-			if ((name != null && name.length() > 0) || (exit != null && exit.length() > 0)) {
-				facility = new Facility(feature, exit+name, exitPron+namePron, building, floor, nodeID);
-			} else if (CATEGORY_TOILET.equals(category)) {
-				String sex = get(properties, KEY_SEX);
-				facility = new Toilet(feature, building, floor, nodeID, sex);
-			} else if (CATEGORY_FACILITY.equals(category)) {					
-				//System.err.println("no name facility: "+nodeID);					
-			} else {
-				for(Object key:properties.keySet()) {
-					System.err.println(key+": "+properties.getString((String) key));
-				}
-				System.err.println("----");
-			}
+			facility = null; // if it is not combined, create new one
 		}
+
+		if (building == null) {
+			building = "Others";
+		}
+		if ((name != null && name.length() > 0) || (exit != null && exit.length() > 0)) {
+			if (subCategory != null && Arrays.asList(services).contains(subCategory)) {
+				facility = new ServiceFacility(feature, exit+name, exitPron+namePron, building, floor, nodeID, majorCategory);
+			} else {
+				facility = new Facility(feature, exit+name, exitPron+namePron, building, floor, nodeID, majorCategory);
+			}
+		} else if (CATEGORY_TOILET.equals(category)) {
+			String sex = get(properties, KEY_SEX);
+			facility = new Toilet(feature, building, floor, nodeID, sex, majorCategory);
+		} else if (CATEGORY_FACILITY.equals(category)) {					
+			//System.err.println("no name facility: "+nodeID);					
+		} else {
+			for(Object key:properties.keySet()) {
+				System.err.println(key+": "+properties.getString((String) key));
+			}
+			System.err.println("----");
+		}
+		
+		map.put(facilityID, facility);
+		
 		return facility;
 	}
 	
 	public String[] getBuildings() {
 		HashSet<String> buildings = new HashSet<String>();
 		for(Facility f: facilities){
+			if (!validName(f.building)) continue;
 			buildings.add(f.building);
 		}
 		return buildings.toArray(new String[0]);
 	}
 
+	private boolean validName(String building) {
+		return building != null && !building.startsWith("_");
+	}
+
+	public String[] getMajorCategories() {
+		HashSet<String> categories = new HashSet<String>();
+		for(Facility f: facilities){
+			if (!validName(f.majorCategory)) continue;
+			categories.add(f.majorCategory);
+		}
+		return categories.toArray(new String[0]);
+	}
+
 	public List<Facility> getFacilitiesByBuilding(String building) {
-		return facilities.stream().filter(f -> f.building.equals(building))
+		return facilities.stream().filter(f -> validName(f.building) && f.building.equals(building))
+				.collect(Collectors.<Facility>toList());
+	}
+	
+	public List<Facility> getFacilitiesByMajorCategory(String category) {
+		return facilities.stream().filter(f -> validName(f.majorCategory) && f.majorCategory.equals(category))
 				.collect(Collectors.<Facility>toList());
 	}
 	
