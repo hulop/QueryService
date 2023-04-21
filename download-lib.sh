@@ -1,7 +1,7 @@
 pwd=`pwd`
 
-mkdir -p ./WebContent/js/lib/
-cd ./WebContent/js/lib/
+mkdir -p ./QueryService/WebContent/js/lib/
+cd ./QueryService/WebContent/js/lib/
 
 jquery=jquery
 
@@ -19,8 +19,8 @@ curl -L -O https://github.com/DataTables/DataTables/archive/1.10.6.zip
 unzip 1.10.6.zip
 
 cd $pwd
-mkdir -p ./WebContent/WEB-INF/lib
-cd ./WebContent/WEB-INF/lib
+mkdir -p ./QueryService/WebContent/WEB-INF/lib
+cd ./QueryService/WebContent/WEB-INF/lib
 
 curl -L -O http://central.maven.org/maven2/org/mongodb/mongo-java-driver/3.4.0/mongo-java-driver-3.4.0.jar
 
