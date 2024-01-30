@@ -56,8 +56,10 @@ public class DirectoryServlet extends HttpServlet {
 		params.put("dist", dist);
 		params.put("lang", lang);
 			
+		String use_http = System.getenv("HULOP_MAP_SERVICE_USE_HTTP");
+		String protocol = (use_http == "true") ? "http" : "https";
 		String mapService = System.getenv("HULOP_MAP_SERVICE");
-		String urlString = String.format("https://%s/routesearch", mapService);
+		String urlString = String.format("%s://%s/routesearch", protocol, mapService);
 		Boolean first = true;
 		for(String key:params.keySet()) {
 			urlString += first ? "?" : "&";
